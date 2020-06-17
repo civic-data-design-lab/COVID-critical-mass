@@ -1,0 +1,108 @@
+```{r}
+setwd("directory here")
+library(tidyr)
+library(ggplot2)
+library(ggthemes)
+library(plotly)
+library(htmlwidgets)
+```
+
+```{r}
+DaysAfter1Death = data.frame(read.csv("COVID-19 Critical Mass_Days After 1 Death.csv", header = TRUE))
+DaysAfter2Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 2 Deaths.csv", header = TRUE))
+DaysAfter5Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 5 Deaths.csv", header = TRUE))
+DaysAfter10Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 10 Deaths.csv", header = TRUE))
+DaysAfter20Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 20 Deaths.csv", header = TRUE))
+DaysAfter50Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 50 Deaths.csv", header = TRUE))
+DaysAfter100Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 100 Deaths.csv", header = TRUE))
+DaysAfter200Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 200 Deaths.csv", header = TRUE))
+DaysAfter500Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 500 Deaths.csv", header = TRUE))
+DaysAfter1000Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 1000 Deaths.csv", header = TRUE))
+DaysAfter2000Deaths = data.frame(read.csv("COVID-19 Critical Mass_Days After 2000 Deaths.csv", header = TRUE))
+```
+
+```{r}
+DaysAfter1Death = gather(DaysAfter1Death, XDay, Deaths, X0:X20, na.rm = TRUE)
+DaysAfter1Death$Day = strtoi(gsub('X','',DaysAfter1Death$XDay))
+DaysAfter2Deaths = gather(DaysAfter2Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter2Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter2Deaths$XDay)))
+DaysAfter5Deaths = gather(DaysAfter5Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter5Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter5Deaths$XDay)))
+DaysAfter10Deaths = gather(DaysAfter10Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter10Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter10Deaths$XDay)))
+DaysAfter20Deaths = gather(DaysAfter20Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter20Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter20Deaths$XDay)))
+DaysAfter50Deaths = gather(DaysAfter50Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter50Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter50Deaths$XDay)))
+DaysAfter100Deaths = gather(DaysAfter100Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter100Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter100Deaths$XDay)))
+DaysAfter200Deaths = gather(DaysAfter200Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter200Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter200Deaths$XDay)))
+DaysAfter500Deaths = gather(DaysAfter500Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter500Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter500Deaths$XDay)))
+DaysAfter1000Deaths = gather(DaysAfter1000Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter1000Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter1000Deaths$XDay)))
+DaysAfter2000Deaths = gather(DaysAfter2000Deaths, XDay, Deaths, X.20:X20, na.rm = TRUE)
+DaysAfter2000Deaths$Day = strtoi(gsub('[[:punct:]]','-',gsub('X','',DaysAfter2000Deaths$XDay)))
+```
+
+```{r}
+regression <- lm(log(Deaths) ~ Day, data = DaysAfter20Deaths[(DaysAfter20Deaths$Day >= -14 & DaysAfter20Deaths$Day <= 0 & DaysAfter20Deaths$Deaths > 0),])
+summary(regression)
+#mean(summary(regression$residuals^2)) #MeanSquareError
+```
+
+```{r}
+plot <- ggplot(data = DaysAfter20Deaths[DaysAfter20Deaths$Day >= -14 & DaysAfter20Deaths$Day <= 14, ], aes(x = Day, y = Deaths)) +
+  geom_vline(aes(xintercept = 0), color = "grey", size = 0.5) +
+  geom_line(aes(group = MSA), alpha = 0.2, size = 1) +
+  geom_point(aes(text = paste0(MSA, "\n", "Day: ", Day, "\n", "Deaths: ", Deaths)), alpha = 0.25, size = 0.5) +
+  stat_summary(geom = "ribbon", fun.data = median_hilow, fun.args = list(conf.int = 1), fill = "lightgrey", alpha = 1/3) +
+  geom_abline(aes(intercept = log10(exp(2.913558)), slope = log10(exp(0.136096)), color = "regression: 14 days before"), size = 1.5) +
+  geom_abline(aes(intercept = log10(exp(3.17245)), slope = log10(exp(0.09192)), color = "regression: 14 days after"), size = 1.5) +
+  theme_minimal() +
+  theme(legend.position = "top", legend.title = element_blank()) +
+  guides(color = guide_legend(reverse = TRUE)) +
+  scale_y_log10() +
+  labs(x = "Days After 20th Death",
+       y = "Cumulative Confirmed Deaths (log)",
+       title = "X = 20 Deaths")
+plot
+```
+
+```{r}
+#Sys.setenv("plotly_username"="username here")
+#Sys.setenv("plotly_api_key"="api key here")
+api_create(ggplotly(plot, tooltip = "text"), filename = "COVID-19_CriticalMass_20")
+#saveWidget(ggplotly(plot, tooltip = "text"), file = "index.html", background = "NA")
+```
+
+```{r}
+Error = data.frame(read.csv("COVID-19 Critical Mass_Error.csv", header = TRUE))
+Error = gather(data = Error, key = Metric, Value, Adj_R2_Before:dF_After, na.rm = TRUE)
+Error$Time = ""
+Error[Error$Metric == "MSE_Before" | Error$Metric == "dF_Before", ]$Time = "14 days before"
+Error[Error$Metric == "MSE_After" | Error$Metric == "dF_After", ]$Time = "14 days after"
+Error$Facet_Label = ""
+Error[Error$Metric == "MSE_Before" | Error$Metric =="MSE_After", ]$Facet_Label = "Mean Square Error \n (Powers of 10)"
+Error[Error$Metric == "dF_Before" | Error$Metric == "dF_After", ]$Facet_Label = "Degrees of Freedom"
+```
+
+```{r}
+errorplot <- ggplot(data = Error[Error$Metric == "MSE_Before" | Error$Metric == "MSE_After", ], aes(x = Deaths, y = exp(Value))) +
+  #facet_grid(rows = vars(Facet_Label), scales = "free_y") +
+  geom_line(aes(group = Metric, color = Time), size = 1.5) +
+  geom_point(aes(text = Value), size = 1) +
+  theme_minimal() +
+  theme(legend.position = "top", legend.title = element_blank(), axis.text.x = element_text(face = "bold", size = 12)) +
+  guides(color = guide_legend(reverse = TRUE)) +
+  scale_x_continuous(breaks = c(1,2,5,10,20,50,100,200,500,1000,2000), trans = "log10") +
+  scale_y_log10() +
+  labs(x = "Before/After X Deaths",
+       y = "Mean Square Error (log)")
+errorplot
+```
+
+```{r}
+api_create(ggplotly(errorplot, tooltip = "text"), filename = "COVID-19_CriticalMass_MSE&dF")
+```
